@@ -1,0 +1,16 @@
+#忽略所有 python compile 文件
+*.pyc
+#忽略本地config文件
+source/*.json
+#忽略Log文件
+log
+source/log/
+#忽略pycharm配置文件
+.idea/
+
+#忽略文本文件
+yytest/ServerLog.txt
+
+#忽略vscode配置文件
+.vscode
+*.log
