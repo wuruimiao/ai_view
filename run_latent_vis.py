@@ -57,39 +57,31 @@ def zoom_factory(ax, base_scale=2.):
     return zoom_fun
 
 
-def hover_factory(ax, img_paths, line, x, y):
+def hover_factory(ax, img_paths, lines, x, y):
     """
     鼠标指向点时，展示对应图片
     """
     im = OffsetImage(np.empty((len(x), 10, 10))[0, :, :], zoom=5)
-    xy_box = (50., 50.)
-    # xy = (0.15, 0.5)
-
-    xy_box = (1.05, 0.6)
-    xy_box = (1.05, 0.5)
-    # xy = (0.5, 0.6)
     ab = AnnotationBbox(
         im, (0.5, 0.6),
-        xybox=xy_box,
+        xybox=(1.05, 0.5),
         xycoords='data',
-        # boxcoords="offset points",
-
         boxcoords='axes fraction',
         box_alignment=(0, 0),
         bboxprops=dict(facecolor='w'),
         arrowprops=dict(
             arrowstyle='->', relpos=(0, 0.5),  # 设置箭头的起始位置，左下角为(0,0),右上角为(1,1)
-            connectionstyle='angle,angleA=0,angleB=90,rad=3'),
-
-        pad=0.5,
+            connectionstyle='angle,angleA=0,angleB=90,rad=3',
+        ),
+        pad=0.2,
         annotation_clip=False
     )
     ab.set_visible(False)
     ax.add_artist(ab)
 
     def hover(event):
-        if line.contains(event)[0]:
-            _index = line.contains(event)[1]["ind"][0]
+        if lines.contains(event)[0]:
+            ind = lines.contains(event)[1]["ind"][0]
 
             # w, h = fig.get_size_inches() * fig.dpi
             # ws = (event.x > w / 2.) * -1 + (event.x <= w / 2.)
@@ -97,8 +89,8 @@ def hover_factory(ax, img_paths, line, x, y):
             # ab.xybox = (xy_box[0] * ws, xy_box[1] * hs)
 
             ab.set_visible(True)
-            ab.xy = (x[_index], y[_index])
-            im.set_data(mpimg.imread(img_paths[_index]))
+            ab.xy = (x[ind], y[ind])
+            im.set_data(mpimg.imread(img_paths[ind]))
         else:
             ab.set_visible(False)
         plt.draw()
@@ -121,15 +113,6 @@ def set_ax_size(fig, width, height, is_3d: bool = False):
 
 
 def lighten_color(color, amount=0.5):
-    """
-    Lightens the given color by multiplying (1-luminosity) by the given amount.
-    Input can be matplotlib color string, hex string, or RGB tuple.
-
-    Examples:
-    >> lighten_color('g', 0.3)
-    >> lighten_color('#F034A3', 0.6)
-    >> lighten_color((.3,.55,.1), 0.5)
-    """
     import matplotlib.colors as mc
     import colorsys
     try:
@@ -147,24 +130,18 @@ def init_plt(x, y, img_paths, pts_num, z=None):
     width = 18
     height = 12
     fig = plt.figure(figsize=(width, height))
+    fig.canvas.manager.set_window_title("Deep Scatter Visualizer")
 
     ax = set_ax_size(fig, width - 6, height - 1, is_3d=z is not None)
 
-    color = [lighten_color("b", num / 10.0) for num in pts_num]
-    color = ['red' for num in x]
-    # color = np.array(color)
-
+    color = [lighten_color('b', num/10) for num in pts_num]
     if z is None:
-        line, = ax.plot(x, y, ls="", marker="o")
+        lines = ax.scatter(x, y, c=color)
     else:
-        line, = ax.plot(x, y, z, ls="", marker="o")
-        # line = plt.scatter(x, y, z, c=color)
+        lines = ax.scatter(x, y, z, c=color)
 
     f = zoom_factory(ax)
-    f2 = hover_factory(ax, img_paths, line, x, y)
-
-    # ax = figure.add_subplot(projection='3d')
-    # ax.scatter(x, y, z)
+    f2 = hover_factory(ax, img_paths, lines, x, y)
 
 
 def load_pt_png(base_dir: str = ""):
@@ -233,5 +210,7 @@ if __name__ == '__main__':
     args = init_arg()
     pts, pngs, pts_num = load_pt_png(args.dir)
     x, y, z = load_x_y(pts)
+    if args.component == 2:
+        z = None
     init_plt(x, y, pngs, pts_num, z)
     plt.show()
